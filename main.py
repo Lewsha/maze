@@ -155,6 +155,7 @@ def bfs_bomb(start, end, maze, bomb_count, adj_table):
 try:
     file = open(sys.argv[1], 'r')
     string = file.read()
+    file.close()
 except FileNotFoundError:
     print('File not found')
     exit()
