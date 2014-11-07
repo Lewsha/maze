@@ -37,80 +37,127 @@ def adjacency_table(maze):
                 if (k // a) == (k + 1) // a:
                     if maze[i][j + 1] == 0:
                         adj_table[k].append(k + 1)
-                if (k + 10) < squares_count:
+                if (k + a) < squares_count:
                     if maze[i + 1][j] == 0:
                         adj_table[k].append(k + a)
                 k += 1
     return adj_table
 
 
-def bfs_bomb(start, end, maze, adj_table):
-    min_lenght = math.fabs(start[1] - end[1]) + math.fabs(start[2] - end[2])
+def bfs_bomb(start, end, bomb_count, maze, adj_table):
     #modified bfs
     #algorithm enumerates all possible ways using bombs
+    min_lenght = int(math.fabs(start[1] - end[1]) + math.fabs(start[2] - end[2]))
     a = (len(maze) + 1) // 2
-    adj = copy.deepcopy(adj_table)
-    level = {start[0]: 0}
-    bomb_parent = {start[0]: None}
-    ways_bomb_count = {start[0]: bomb_count}
-    i = 1
-    frontier = [start[0]]
-    heap = list()
-    heap.append(start[0])
-    while end[0] not in heap and frontier and bomb_count >= 0:
-        next = []
-        for u in frontier:
-            for v in adj[u]:
-                ways_bomb_count[v] = ways_bomb_count[u]
-            if u - a > 0 and u - a not in adj[u] and ways_bomb_count[u] > 0:
-                adj[u].append(u - a)
-                if adj[u][len(adj[u]) - 1] not in heap:
-                    ways_bomb_count[adj[u][len(adj[u]) - 1]] = ways_bomb_count[u] - 1
-            if (u // a) == (u - 1) // a and u - 1 not in adj[u] and ways_bomb_count[u] > 0:
-                adj[u].append(u - 1)
-                if adj[u][len(adj[u]) - 1] not in heap:
-                    ways_bomb_count[adj[u][len(adj[u]) - 1]] = ways_bomb_count[u] - 1
-            if (u // a) == (u + 1) // a and u + 1 not in adj[u] and ways_bomb_count[u] > 0:
-                adj[u].append(u + 1)
-                if adj[u][len(adj[u]) - 1] not in heap:
-                    ways_bomb_count[adj[u][len(adj[u]) - 1]] = ways_bomb_count[u] - 1
-            if (u + 10) < a ** 2 and u + 10 not in adj[u] and ways_bomb_count[u] > 0:
-                adj[u].append(u + 10)
-                if adj[u][len(adj[u]) - 1] not in heap:
-                    ways_bomb_count[adj[u][len(adj[u]) - 1]] = ways_bomb_count[u] - 1
-            for v in adj[u]:
-                if v not in level and v not in heap:
-                    heap.append(v)
-                    level[v] = i
-                    bomb_parent[v] = u
-                    next.append(v)
-        frontier = next
-        i += 1
     bomb_result = list()
-    bomb_result.append(end[0])
-    i = end[0]
-    while start[0] not in bomb_result:
-        bomb_result.append(bomb_parent[i])
-        i = bomb_parent[i]
-    bomb_result.reverse()
+    for k in range(0, bomb_count + 1):
+        bombs = k
+        adj = copy.deepcopy(adj_table)
+        level = {start[0]: 0}
+        bomb_parent = {start[0]: None}
+        ways_bomb_count = {start[0]: bombs}
+        i = 1
+        frontier = [start[0]]
+        heap = list()
+        heap.append(start[0])
+        while end[0] not in heap and frontier and bombs >= 0:
+            next = []
+            for u in frontier:
+                for v in adj[u]:
+                    ways_bomb_count[v] = ways_bomb_count[u]
+                for v in adj[u]:
+                    if v not in level and v not in heap:
+                        heap.append(v)
+                        level[v] = i
+                        bomb_parent[v] = u
+                        next.append(v)
+            for u in frontier:
+                if (u - a > 0) and ((u - a) not in adj[u]) and (ways_bomb_count[u] > 0):
+                    #print(u, u - a)
+                    if u - a not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u - a]:
+                        #print(u, 'north')
+                        adj[u].append(u - a)
+                        ways_bomb_count[u - a] = ways_bomb_count[u] - 1
+                        level[u - a] = i
+                        bomb_parent[u - a] = u
+                        next.append(u - a)
+                        heap.append(u - a)
+                if ((u // a) == (u - 1) // a) and ((u - 1) not in adj[u]) and (ways_bomb_count[u] > 0):
+                    #print(u, u // a)
+                    if u - 1 not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u - 1]:
+                        #print(u, 'west')
+                        adj[u].append(u - 1)
+                        ways_bomb_count[u - 1] = ways_bomb_count[u] - 1
+                        level[u - 1] = i
+                        bomb_parent[u - 1] = u
+                        next.append(u - 1)
+                        heap.append(u - 1)
+                if ((u // a) == (u + 1) // a) and (u + 1 not in adj[u]) and (ways_bomb_count[u] > 0):
+                    #print(u, u // a)
+                    if u + 1 not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u + 1]:
+                        #print(u, 'east')
+                        adj[u].append(u + 1)
+                        ways_bomb_count[u + 1] = ways_bomb_count[u] - 1
+                        level[u + 1] = i
+                        bomb_parent[u + 1] = u
+                        next.append(u + 1)
+                        heap.append(u + 1)
+                if ((u + a) < a ** 2) and (u + a not in adj[u]) and (ways_bomb_count[u] > 0):
+                    #print(u, u + a)
+                    if u + 10 not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u + a]:
+                        #print(u, 'south')
+                        adj[u].append(u + 10)
+                        ways_bomb_count[u + a] = ways_bomb_count[u] - 1
+                        level[u + a] = i
+                        bomb_parent[u + a] = u
+                        next.append(u + a)
+                        heap.append(u + a)
+            frontier = next
+            i += 1
+        bomb_result.append(list())
+        bomb_result[k].append(end[0])
+        j = end[0]
+        if end[0] in heap:
+            while start[0] not in bomb_result[k]:
+                bomb_result[k].append(bomb_parent[j])
+                j = bomb_parent[j]
+            bomb_result[k].reverse()
+        else:
+            bomb_result[k].append('No way!')
     return bomb_result
 
 
 #taking information about maze
 try:
-    file = open('maze.txt', 'r')
-    string = file.read()
+    file = open('test01.txt', 'r')
+    text_string = file.read()
     file.close()
 except FileNotFoundError:
     print('File not found')
     exit()
-info = string[string.find('end') + 4:].split('\n')
+info = text_string[text_string.find('end') + 4:].split('\n')
 bomb_count = int(info[0])
 start = info[1].split()
 end = info[2].split()
+#print(info)
+#print(bomb_count)
 for i in range(0, len(start)):
     start[i] = int(start[i])
     end[i] = int(end[i])
-maze = building_maze(string)
+maze = building_maze(text_string)
 adj_table = adjacency_table(maze)
-print(bfs_bomb(start, end, maze, adj_table))
+res = bfs_bomb(start, end, bomb_count, maze, adj_table)
+min_length_result = [0, maze]
+min_bomb_result = [bomb_count, maze]
+min_combination_result = [bomb_count, maze]
+for i in range(0, len(res)):
+    if res[i][1] == 'No way!':
+        continue
+    if len(res[i]) - 1 < len(min_length_result[1]):
+        min_length_result = [i, res[i]]
+    if i < min_bomb_result[0]:
+        min_bomb_result = [i, res[i]]
+    if (i + len(res[i])) / 2 < (min_combination_result[0] + len(min_combination_result[1])) / 2:
+        min_combination_result = [i, res[i]]
+print(res)
+print(min_length_result, min_bomb_result, min_combination_result)
