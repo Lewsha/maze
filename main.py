@@ -129,7 +129,7 @@ def bfs_bomb(start, end, bomb_count, maze, adj_table):
 
 #taking information about maze
 try:
-    file = open('test03.txt', 'r')
+    file = open(sys.argv[1], 'r')
     content = file.read()
     file.close()
 except FileNotFoundError:
