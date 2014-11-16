@@ -1,0 +1,4 @@
+Ways finder in maze
+Created by 
+Rybakov Daniil
+2014

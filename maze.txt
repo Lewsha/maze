@@ -21,3 +21,4 @@ end
 2
 0 0 0
 99 9 9
+This is a maze file
