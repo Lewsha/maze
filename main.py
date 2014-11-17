@@ -327,17 +327,27 @@ def new_maze():  # Функция для создания нового лаби�
                                 maze[i][j] = 1
             adj_table = adjacency_table(maze)
             result = bfs_bomb(start, end, bomb_count, maze, adj_table)
-            lab7 = Label(root, text='Выберите режим работы')
-            lab7.grid(row=1, column=0, columnspan=2)
-            mode = IntVar()
-            mode.set(5)
-            rbutton1 = Radiobutton(root, text='Кратчайший путь', variable=mode, value=0)
-            rbutton2 = Radiobutton(root, text='Наименьший \n расход бомб', variable=mode, value=1)
-            rbutton1.grid(row=2, column=0)
-            rbutton2.grid(row=2, column=1)
-            button_show = Button(root, text="Показать")
-            button_show.grid(row=3, column=0, columnspan=2)
-            button_show.bind("<1>", final)
+            if type(result) is str:
+                win = Toplevel(root)
+                win.title("Message")
+                win.minsize(250, 100)
+                win.maxsize(250, 100)
+                message = Text(win)
+                message.insert(1.0, result)
+                message.pack()
+                print(result)
+            else:
+                lab7 = Label(root, text='Выберите режим работы')
+                lab7.grid(row=1, column=0, columnspan=2)
+                mode = IntVar()
+                mode.set(5)
+                rbutton1 = Radiobutton(root, text='Кратчайший путь', variable=mode, value=0)
+                rbutton2 = Radiobutton(root, text='Наименьший \n расход бомб', variable=mode, value=1)
+                rbutton1.grid(row=2, column=0)
+                rbutton2.grid(row=2, column=1)
+                button_show = Button(root, text="Показать")
+                button_show.grid(row=3, column=0, columnspan=2)
+                button_show.bind("<1>", final)
 
         if scale.get() > 0:
             size = scale.get()
@@ -370,7 +380,7 @@ def new_maze():  # Функция для создания нового лаби�
             x = 0
             y = 0
             if size < 11:
-                x = 50
+                x = 40
                 y = 10
             else:
                 x = 30
