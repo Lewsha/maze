@@ -280,7 +280,6 @@ def new_maze():  # Функция для создания нового лаби�
                             configure(bg="yellow")
             start = [scale1_x.get() + scale1_y.get() * size]
             end = [scale2_x.get() + scale2_y.get() * size]
-            print(scale1_x.get(), scale1_y.get(), scale2_x.get(), scale2_y.get())
             button_maze[scale1_y.get() * 2][scale1_x.get() * 2].configure(bg='red')
             button_maze[scale2_y.get() * 2][scale2_x.get() * 2].configure(bg='green')
             bomb_count = scale_bomb.get()
@@ -335,7 +334,6 @@ def new_maze():  # Функция для создания нового лаби�
                 message = Text(win)
                 message.insert(1.0, result)
                 message.pack()
-                print(result)
             else:
                 lab7 = Label(root, text='Выберите режим работы')
                 lab7.grid(row=1, column=0, columnspan=2)
