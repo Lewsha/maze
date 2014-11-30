@@ -11,6 +11,6 @@
 0 0 0 0 0 0 0 0 0 0 0
 end
 5
-0 0 0
-5 5 0
+0
+5
 This is a maze file
