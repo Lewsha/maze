@@ -325,6 +325,7 @@ def save_maze(maze, start, end, bomb_count):
         file.write(str(start) + '\n')
         file.write(str(end) + '\n')
         file.write('This is a maze file')
+        file.close()
     except Exception as ex:
         print(ex.args)
 
