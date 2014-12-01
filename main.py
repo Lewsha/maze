@@ -26,13 +26,9 @@ class modidied_button(Frame):
 def building_maze_txt(string):
     string = string[:string.find('end') - 1]  # Отрезаем кусок строки с лабиринтом
     tmp_maze = string.split('\n')
-    maze = list()
-    for i in range(len(tmp_maze)):  # Создание лабиринта
-        maze.append(list())
-        maze[i] = tmp_maze[i].split()
+    maze = [x.split() for x in tmp_maze]  # Создание лабиринта
     for i in range(len(maze)):  # Перегон в int'ы
-        for j in range(len(maze[i])):
-            maze[i][j] = int(maze[i][j])
+        maze[i] = [int(x) for x in maze[i]]
     return maze
 
 
@@ -62,8 +58,75 @@ def adjacency_table(maze):
     return adj_table
 
 
-#modified bfs
-#algorithm enumerates all possible ways using bombs
+#Модифицированный поиск в ширину, подфункция bfs_bomb
+def bfs(k, size, start, end, adj_table):
+    adj = copy.deepcopy(adj_table)
+    level = {start: 0}  # Уровень каждой клетки
+    bomb_parent = {start: None}  # Отец каждой клетки
+    ways_bomb_count = {start: k}  # Количество бомб каждой клетки
+    level_num = 1  # Текущий уровень
+    frontier = [start]  # Рассматриваемые на данный момент клетки
+    heap = list()  # Куча для просмотренных клеток
+    heap.append(start)
+    while end not in heap and frontier:  # Пока не достигли конца и есть что смотреть
+        next_level = []  # будущий фронт
+        for u in frontier:  # Смотрим "фронтовые" клетки
+            for v in adj[u]:  # Во "фронтовых" клетках смотрим детей
+                ways_bomb_count[v] = ways_bomb_count[u]  # Клетка наследует бомбы от предка
+                if v not in level and v not in heap:  # Если ребенок не в куче...
+                    heap.append(v)  # Добавляем его в кучу
+                    level[v] = level_num  # устанавлиаем уровень
+                    bomb_parent[v] = u  # отмечаем предка
+                    next_level.append(v)  # добавляем в будущий фронт
+        for u in frontier:  # добавление клеток, которые находятся за стенками
+            if (u - size > 0) and ((u - size) not in adj[u]) and (ways_bomb_count[u] > 0):
+                if u - size not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u - size]:
+                    adj[u].append(u - size)
+                    ways_bomb_count[u - size] = ways_bomb_count[u] - 1
+                    level[u - size] = level_num
+                    bomb_parent[u - size] = u
+                    next_level.append(u - size)
+                    heap.append(u - size)
+            if ((u // size) == (u - 1) // size) and ((u - 1) not in adj[u]) and (ways_bomb_count[u] > 0):
+                if u - 1 not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u - 1]:
+                    adj[u].append(u - 1)
+                    ways_bomb_count[u - 1] = ways_bomb_count[u] - 1
+                    level[u - 1] = level_num
+                    bomb_parent[u - 1] = u
+                    next_level.append(u - 1)
+                    heap.append(u - 1)
+            if ((u // size) == (u + 1) // size) and (u + 1 not in adj[u]) and (ways_bomb_count[u] > 0):
+                if u + 1 not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u + 1]:
+                    adj[u].append(u + 1)
+                    ways_bomb_count[u + 1] = ways_bomb_count[u] - 1
+                    level[u + 1] = level_num
+                    bomb_parent[u + 1] = u
+                    next_level.append(u + 1)
+                    heap.append(u + 1)
+            if ((u + size) < size ** 2) and (u + size not in adj[u]) and (ways_bomb_count[u] > 0):
+                if u + 10 not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u + size]:
+                    adj[u].append(u + 10)
+                    ways_bomb_count[u + size] = ways_bomb_count[u] - 1
+                    level[u + size] = level_num
+                    bomb_parent[u + size] = u
+                    next_level.append(u + size)
+                    heap.append(u + size)
+        frontier = next_level
+        level_num += 1
+    bomb_result = list()
+    bomb_result.append(end)
+    j = end
+    if end in heap:  # Если конец в куче, создаем путь
+        while start not in bomb_result:
+            bomb_result.append(bomb_parent[j])
+            j = bomb_parent[j]
+        bomb_result.reverse()
+    else:  # Иначе - отмечаем, что нет пути
+        bomb_result.append('No way!')
+    return bomb_result
+
+
+#Функция, использующая модифицированный bfs и обрабатывающая результаты
 def bfs_bomb(start, end, bomb_count, maze, adj_table):
     if start == end:
         return [None, 'The begin is the end!']
@@ -72,70 +135,7 @@ def bfs_bomb(start, end, bomb_count, maze, adj_table):
         bomb_result = list()  # Массив путей
         result = dict()  # Словарь путей
         for k in range(bomb_count + 1):  # Просчет кратчайшего пути для каждого количества бомб
-            bombs = k
-            adj = copy.deepcopy(adj_table)
-            level = {start: 0}  # Уровень каждой клетки
-            bomb_parent = {start: None}  # Отец каждой клетки
-            ways_bomb_count = {start: bombs}  # Количество бомб каждой клетки
-            level_num = 1  # Текущий уровень
-            frontier = [start]  # Рассматриваемые на данный момент клетки
-            heap = list()  # Куча для просмотренных клеток
-            heap.append(start)
-            while end not in heap and frontier:  # Пока не достигли конца и есть что смотреть
-                next_level = []  # будущий фронт
-                for u in frontier:  # Смотрим "фронтовые" клетки
-                    for v in adj[u]:  # Во "фронтовых" клетках смотрим детей
-                        ways_bomb_count[v] = ways_bomb_count[u]  # Клетка наследует бомбы от предка
-                        if v not in level and v not in heap:  # Если ребенок не в куче...
-                            heap.append(v)  # Добавляем его в кучу
-                            level[v] = level_num  # устанавлиаем уровень
-                            bomb_parent[v] = u  # отмечаем предка
-                            next_level.append(v)  # добавляем в будущий фронт
-                for u in frontier:  # добавление клеток, которые находятся за стенками
-                    if (u - size > 0) and ((u - size) not in adj[u]) and (ways_bomb_count[u] > 0):
-                        if u - size not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u - size]:
-                            adj[u].append(u - size)
-                            ways_bomb_count[u - size] = ways_bomb_count[u] - 1
-                            level[u - size] = level_num
-                            bomb_parent[u - size] = u
-                            next_level.append(u - size)
-                            heap.append(u - size)
-                    if ((u // size) == (u - 1) // size) and ((u - 1) not in adj[u]) and (ways_bomb_count[u] > 0):
-                        if u - 1 not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u - 1]:
-                            adj[u].append(u - 1)
-                            ways_bomb_count[u - 1] = ways_bomb_count[u] - 1
-                            level[u - 1] = level_num
-                            bomb_parent[u - 1] = u
-                            next_level.append(u - 1)
-                            heap.append(u - 1)
-                    if ((u // size) == (u + 1) // size) and (u + 1 not in adj[u]) and (ways_bomb_count[u] > 0):
-                        if u + 1 not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u + 1]:
-                            adj[u].append(u + 1)
-                            ways_bomb_count[u + 1] = ways_bomb_count[u] - 1
-                            level[u + 1] = level_num
-                            bomb_parent[u + 1] = u
-                            next_level.append(u + 1)
-                            heap.append(u + 1)
-                    if ((u + size) < size ** 2) and (u + size not in adj[u]) and (ways_bomb_count[u] > 0):
-                        if u + 10 not in heap or (ways_bomb_count[u] - 1) > ways_bomb_count[u + size]:
-                            adj[u].append(u + 10)
-                            ways_bomb_count[u + size] = ways_bomb_count[u] - 1
-                            level[u + size] = level_num
-                            bomb_parent[u + size] = u
-                            next_level.append(u + size)
-                            heap.append(u + size)
-                frontier = next_level
-                level_num += 1
-            bomb_result.append(list())
-            bomb_result[k].append(end)
-            j = end
-            if end in heap:  # Если конец в куче, создаем путь
-                while start not in bomb_result[k]:
-                    bomb_result[k].append(bomb_parent[j])
-                    j = bomb_parent[j]
-                bomb_result[k].reverse()
-            else:  # Иначе - отмечаем, что нет пути
-                bomb_result[k].append('No way!')
+            bomb_result.append(bfs(k, size, start, end, adj_table))
         for num in range(len(bomb_result)):  # Переводим результаты в словарь
             if bomb_result[num][1] == 'No way!':
                 result[num] = 'No way!'
@@ -488,14 +488,14 @@ def painting(result, maze, start, end):
     frame_maze.grid_remove()
     maze_frame.grid(row=0, column=0)  # Пакуем
     frame_list = list()  # Лист для лабиринта
-    x = 0  # Размеры для клеток
-    y = 0
-    if len(maze) < 40:  # Выбираем размер
+
+    if len(maze) < 40:  # Выбираем размер клеток
         x = 50
         y = 5
     else:
         x = 25
         y = 2
+
     for i in range(len(maze)):  # Создаем отрисовку
         frame_list.append(list())
         for j in range(len(maze)):
