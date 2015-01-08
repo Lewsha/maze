@@ -3,6 +3,8 @@ __author__ = 'Lewsha'
 from tkinter import *
 from tkinter.filedialog import *
 import copy
+import codecs
+import re
 
 
 #Класс для new_maze(), позволяющий менять цвет у конкретной кнопки,
@@ -11,7 +13,7 @@ class modidied_button(Frame):
     def __init__(self, dad=None):
         Frame.__init__(self, dad)
         self.li = ["black", "grey"]
-        self.frame = Frame(frame_maze)
+        self.frame = Frame(main_frame[1])
         self.x = 0
         self.y = 0
         self.frame.grid(row=0, column=0)
@@ -162,11 +164,10 @@ def bfs_bomb(start, end, bomb_count, maze, adj_table):
 #Функция для открытия и построения лабиринта из имеющегося файла лабиринта(отрисовка в painting)
 def open_maze():
     root.maxsize(200, 200)
-    maze_frame.grid_remove()
-    frame_maze.grid_remove()
-    new_maze_frame.grid_remove()
-    open_maze_frame.grid_remove()
-    open_maze_frame.grid()
+    main_frame[0].destroy()
+    main_frame[1].destroy()
+    main_frame[0] = Frame(root,  width=200, height=200)
+    main_frame[1] = Frame(root,  width=200, height=200)
 
     def f_button(event):
         if choice.get() == 1:  # Если мы хотим увидеть минимальный путь,...
@@ -193,50 +194,68 @@ def open_maze():
             message.pack()
 
     op = askopenfile()  # Диалог для выбора файла
-    try:
-        op = op.name
-        file = open(op, 'r')  # Пробуем открыть
-        text = file.read()
-        file.close()
-        if text[-19:] == "This is a maze file":  # Если это файл лабиринта, вытаскиваем всю нужную информацию
-            txt_maze = building_maze_txt(text)  # Строковок представление лабиринта
-            info = text[text.find('end') + 4:].split('\n')
-            bomb_count = int(info[0])  # Количество бомб
-            start = int(info[1])  # Точка входа
-            end = int(info[2])  # Точка выхода
-            adj_table = adjacency_table(txt_maze)  # Таблица смежности
-            result = bfs_bomb(start, end, bomb_count, txt_maze, adj_table)  # Результат поиска пути
-            if result[0] is None:  # Если нет пути или начало равно концу
+    reg_exp = re.compile(r'txt$')
+    op = op.name
+    if re.search(reg_exp, op):
+        try:
+            file = open(op, 'r')  # Пробуем открыть
+            text = file.read()
+            file.close()
+            if text[-19:] == "This is a maze file":  # Если это файл лабиринта, вытаскиваем всю нужную информацию
+                txt_maze = building_maze_txt(text)  # Строковок представление лабиринта
+                info = text[text.find('end') + 4:].split('\n')
+                bomb_count = int(info[0])  # Количество бомб
+                start = int(info[1])  # Точка входа
+                end = int(info[2])  # Точка выхода
+                adj_table = adjacency_table(txt_maze)  # Таблица смежности
+                result = bfs_bomb(start, end, bomb_count, txt_maze, adj_table)  # Результат поиска пути
+                if result[0] is None:  # Если нет пути или начало равно концу
+                    win = Toplevel(root)
+                    win.title("Message")
+                    win.minsize(250, 100)
+                    win.maxsize(250, 100)
+                    message = Text(win)
+                    message.insert(1.0, result[1])
+                    message.pack()
+                    painting(result[0], txt_maze, start, end)
+                else:
+                    choice = IntVar()  # Флаг
+                    button_frame = Frame(root, width=200, height=500, bd=20)  # Фрейм для кнопок
+                    button_frame.grid(row=0, column=0)
+                    label = Label(button_frame, text="Выберите режим \n поиска пути")
+                    rbutton1 = Radiobutton(button_frame, text='Кратчайший путь', variable=choice, value=1)  # Кнопки выбора
+                    rbutton2 = Radiobutton(button_frame, text='Наименьший \n расход бомб', variable=choice, value=2)
+                    fbutton = Button(button_frame, text='Выбрать')  # Кнопка для продолжения
+                    fbutton.bind("<Button-1>", f_button)
+                    label.pack()
+                    rbutton1.pack()
+                    rbutton2.pack()
+                    fbutton.pack()
+
+            else:  # Выводим сообщение, если это не файл лабиринта
                 win = Toplevel(root)
-                win.title("Message")
-                win.minsize(250, 100)
-                win.maxsize(250, 100)
+                win.minsize(250, 50)
+                win.maxsize(250, 50)
+                win.title("Error!")
                 message = Text(win)
-                message.insert(1.0, result[1])
+                message.insert(1.0, "Это не файл лабиринта.\nВыберите нужный файл")
                 message.pack()
-            else:
-                choice = IntVar()  # Флаг
-                button_frame = Frame(open_maze_frame, width=200, height=500, bd=20)  # Фрейм для кнопок
-                button_frame.grid(row=0, column=0)
-                label = Label(button_frame, text="Выберите режим \n поиска пути")
-                rbutton1 = Radiobutton(button_frame, text='Кратчайший путь', variable=choice, value=1)  # Кнопки выбора
-                rbutton2 = Radiobutton(button_frame, text='Наименьший \n расход бомб', variable=choice, value=2)
-                fbutton = Button(button_frame, text='Выбрать')  # Кнопка для продолжения
-                fbutton.bind("<Button-1>", f_button)
-                label.pack()
-                rbutton1.pack()
-                rbutton2.pack()
-                fbutton.pack()
-        else:  # Выводим сообщение, если это не файл лабиринта
+        except UnicodeDecodeError:
             win = Toplevel(root)
             win.minsize(250, 50)
             win.maxsize(250, 50)
             win.title("Error!")
             message = Text(win)
-            message.insert(1.0, "Это не файл лабиринта.\nВыберите нужный файл")
+            message.insert(1.0, "Ошибка в кодировке файла")
             message.pack()
-    except Exception as ex:
-        print(ex.args)
+    else:
+        win = Toplevel(root)
+        win.minsize(250, 50)
+        win.maxsize(250, 50)
+        win.title("Error!")
+        message = Text(win)
+        message.insert(1.0, "Нужно выбрать файл \nформата .txt")
+        message.pack()
 
 
 #Дочерняя функция building_control для построения управляемого поля лабиринта
@@ -249,7 +268,7 @@ def building_field(size):
         maze.append(list())
         button_maze.append(list())
         for j in range(size * 2 - 1):
-            button_maze[i].append(modidied_button(frame_maze))
+            button_maze[i].append(modidied_button(main_frame[1]))
             button_maze[i][j].frame.grid(row=i, column=j)
             button_maze[i][j].x = size * i + j
             maze[i].append(0)
@@ -257,7 +276,7 @@ def building_field(size):
             button_maze[i][j].frame.configure(width=x, height=x, bg='grey')
             if i % 2 == 0:
                 if j % 2 == 0:
-                    button_maze[i][j] = Frame(frame_maze, width=x, height=x)
+                    button_maze[i][j] = Frame(main_frame[1], width=x, height=x)
                     button_maze[i][j].grid(row=i, column=j)
 
                 else:
@@ -267,13 +286,13 @@ def building_field(size):
                     button_maze[i][j].frame.configure(width=x, height=y)
                 else:
                     button_maze[i][j].frame.grid_remove()
-                    button_maze[i][j] = Frame(frame_maze, width=y, height=y)
+                    button_maze[i][j] = Frame(main_frame[1], width=y, height=y)
                     button_maze[i][j].grid(row=i, column=j)
                     button_maze[i][j].configure(bg='black')
     return maze, button_maze
 
 
-#Дочерняя функци building_control для превращения построенного лабиринта в неизменяемый
+#Дочерняя функция building_control для превращения построенного лабиринта в неизменяемый
 def fixation(maze, button_maze, size):
     x = 40
     y = 10
@@ -282,26 +301,26 @@ def fixation(maze, button_maze, size):
             if i % 2 == 0:
                 if j % 2 == 0:
                     color = button_maze[i][j]['bg']
-                    button_maze[i][j] = Frame(frame_maze, width=x, height=x, bg=color)
+                    button_maze[i][j] = Frame(main_frame[1], width=x, height=x, bg=color)
                     button_maze[i][j].grid(row=i, column=j)
                     if color == 'black':
                         maze[i][j] = 1
                 else:
                     color = button_maze[i][j].frame['bg']
-                    button_maze[i][j] = Frame(frame_maze, width=y, height=x, bg=color)
+                    button_maze[i][j] = Frame(main_frame[1], width=y, height=x, bg=color)
                     button_maze[i][j].grid(row=i, column=j)
                     if color == 'black':
                         maze[i][j] = 1
             else:
                 if j % 2 == 0:
                     color = button_maze[i][j].frame['bg']
-                    button_maze[i][j] = Frame(frame_maze, width=x, height=y, bg=color)
+                    button_maze[i][j] = Frame(main_frame[1], width=x, height=y, bg=color)
                     button_maze[i][j].grid(row=i, column=j)
                     if color == 'black':
                         maze[i][j] = 1
                 else:
                     color = button_maze[i][j]['bg']
-                    button_maze[i][j] = Frame(frame_maze, width=y, height=y, bg=color)
+                    button_maze[i][j] = Frame(main_frame[1], width=y, height=y, bg=color)
                     button_maze[i][j].grid(row=i, column=j)
                     if color == 'black':
                         maze[i][j] = 1
@@ -311,9 +330,10 @@ def fixation(maze, button_maze, size):
 #Дочерняя функция building control для сохранения построенного лабиринта
 def save_maze(maze, start, end, bomb_count):
     save = asksaveasfile()  # Диалог для выбора имени и распложения
-    try:
-        save = save.name
-        file = open(save, 'w')  # Непосредственно запись
+    reg_exp = re.compile(r'txt$')
+    name = str(save.name)
+    if re.search(reg_exp, name):
+        file = open(name, 'w')  # Непосредственно запись
         for i in range(len(maze)):
             for j in range(len(maze[i])):
                 file.write(str(maze[i][j]))
@@ -326,8 +346,14 @@ def save_maze(maze, start, end, bomb_count):
         file.write(str(end) + '\n')
         file.write('This is a maze file')
         file.close()
-    except Exception as ex:
-        print(ex.args)
+    else:
+        win = Toplevel(root)
+        win.minsize(250, 50)
+        win.maxsize(250, 50)
+        win.title("Error!")
+        message = Text(win)
+        message.insert(1.0, "Нужно выбрать файл \nформата .txt!")
+        message.pack()
 
 
 #Дочерняя функция new_maze, которая выводит большую часть кода в отдельные функции
@@ -344,7 +370,7 @@ def building_control(size):
                 for i in range(1, len(result[mode.get()][1]) - 1):
                     button_maze[result[mode.get()][1][i] // size * 2][result[mode.get()][1][i] % size * 2].\
                         configure(bg="yellow")
-                button_save = Button(new_maze_frame, text='Сохранить')
+                button_save = Button(main_frame[0], text='Сохранить')
                 button_save.grid(row=5, column=1)
                 button_save.bind("<1>", final)
             button_show.destroy()
@@ -368,52 +394,58 @@ def building_control(size):
         adj_table = adjacency_table(fix_maze)
         result = bfs_bomb(start, end, bomb_count, fix_maze, adj_table)
         if result[0] is None:
+            def final(event):
+                save_maze(maze, start, end, bomb_count)
+                button_save.destroy()
             window = Toplevel(root)
             window.title("Message")
             window.minsize(250, 100)
             window.maxsize(250, 100)
             message = Text(window)
-            message.insert(1.0, result[0])
+            message.insert(1.0, result[1])
             message.pack()
+            button_save = Button(main_frame[0], text='Сохранить')
+            button_save.grid(row=5, column=1)
+            button_save.bind("<1>", final)
         else:
-            lab7 = Label(new_maze_frame, text='Выберите режим работы')
+            lab7 = Label(main_frame[0], text='Выберите режим работы')
             lab7.grid(row=1, column=0, columnspan=2)
             mode = IntVar()
             mode.set(5)
-            rbutton1 = Radiobutton(new_maze_frame, text='Кратчайший путь', variable=mode, value=0)
-            rbutton2 = Radiobutton(new_maze_frame, text='Наименьший \n расход бомб', variable=mode, value=1)
+            rbutton1 = Radiobutton(main_frame[0], text='Кратчайший путь', variable=mode, value=0)
+            rbutton2 = Radiobutton(main_frame[0], text='Наименьший \n расход бомб', variable=mode, value=1)
             rbutton1.grid(row=2, column=0)
             rbutton2.grid(row=2, column=1)
-            button_show = Button(new_maze_frame, text="Показать")
+            button_show = Button(main_frame[0], text="Показать")
             button_show.grid(row=3, column=0, columnspan=3)
             button_show.bind("<1>", paint)
 
     if size > 0:
-        lab2 = Label(new_maze_frame, text="Выберите начальную позицию")
-        lab3 = Label(new_maze_frame, text="Выберите конечную позицию")
+        lab2 = Label(main_frame[0], text="Выберите начальную позицию")
+        lab3 = Label(main_frame[0], text="Выберите конечную позицию")
         lab2.grid(row=0, column=0)
         lab3.grid(row=0, column=2)
-        lab4 = Label(new_maze_frame, text='x')
-        lab5 = Label(new_maze_frame, text='y')
+        lab4 = Label(main_frame[0], text='x')
+        lab5 = Label(main_frame[0], text='y')
         lab4.grid(row=1, column=1)
         lab5.grid(row=2, column=1)
-        scale1_x = Scale(new_maze_frame, orient=HORIZONTAL, length=200, from_=0, to=size - 1, tickinterval=1, resolution=1)
+        scale1_x = Scale(main_frame[0], orient=HORIZONTAL, length=200, from_=0, to=size - 1, tickinterval=1, resolution=1)
         scale1_x.grid(row=1, column=0)
-        scale1_y = Scale(new_maze_frame, orient=HORIZONTAL, length=200, from_=0, to=size - 1, tickinterval=1, resolution=1)
+        scale1_y = Scale(main_frame[0], orient=HORIZONTAL, length=200, from_=0, to=size - 1, tickinterval=1, resolution=1)
         scale1_y.grid(row=2, column=0)
-        scale2_x = Scale(new_maze_frame, orient=HORIZONTAL, length=200, from_=0, to=size - 1, tickinterval=1, resolution=1)
+        scale2_x = Scale(main_frame[0], orient=HORIZONTAL, length=200, from_=0, to=size - 1, tickinterval=1, resolution=1)
         scale2_x.grid(row=1, column=2)
-        scale2_y = Scale(new_maze_frame, orient=HORIZONTAL, length=200, from_=0, to=size - 1, tickinterval=1, resolution=1)
+        scale2_y = Scale(main_frame[0], orient=HORIZONTAL, length=200, from_=0, to=size - 1, tickinterval=1, resolution=1)
         scale2_y.grid(row=2, column=2)
-        lab6 = Label(new_maze_frame, text='Количество бомб')
+        lab6 = Label(main_frame[0], text='Количество бомб')
         lab6.grid(row=3, column=0)
-        scale_bomb = Scale(new_maze_frame, orient=HORIZONTAL, length=200, from_=0, to=10, tickinterval=1, resolution=1)
+        scale_bomb = Scale(main_frame[0], orient=HORIZONTAL, length=200, from_=0, to=10, tickinterval=1, resolution=1)
         scale_bomb.grid(row=3, column=2)
-        frame_maze.grid(row=4, column=0, columnspan=3)
+        main_frame[1].grid(row=4, column=0, columnspan=3)
 
         maze = building_field(size)[0]
         button_maze = building_field(size)[1]
-        button_create = Button(new_maze_frame, text='Создать')
+        button_create = Button(main_frame[0], text='Создать')
         button_create.grid(row=5, column=0, columnspan=3)
         button_create.bind("<1>", click)
     else:
@@ -429,54 +461,65 @@ def building_control(size):
 #Функция для создания нового лабиринта
 def new_maze():
     root.maxsize(1000, 1000)
-    maze_frame.grid_remove()
-    frame_maze.grid_remove()
-    new_maze_frame.grid_remove()
-    open_maze_frame.grid_remove()
-    new_maze_frame.grid()
+    main_frame[0].destroy()
+    main_frame[1].destroy()
+    main_frame[0] = Frame(root,  width=200, height=200)
+    main_frame[1] = Frame(main_frame[0],  width=200, height=200)
+    main_frame[0].grid(row=0, column=0)
 
     def choice(event):
         building_control(scale.get())
         lab1.destroy()
         button_choice.destroy()
         scale.destroy()
-    lab1 = Label(new_maze_frame, text="Выберите размер стороны лабиринта")
+    lab1 = Label(main_frame[0], text="Выберите размер стороны лабиринта")
     lab1.grid(row=0, column=0, columnspan=2)
-    scale = Scale(new_maze_frame, orient=HORIZONTAL, length=400, from_=0, to=10, tickinterval=1, resolution=1)
+    scale = Scale(main_frame[0], orient=HORIZONTAL, length=400, from_=0, to=10, tickinterval=1, resolution=1)
     scale.grid(row=1, column=0, columnspan=2)
-    button_choice = Button(new_maze_frame, text='Создать')
+    button_choice = Button(main_frame[0], text='Создать')
     button_choice.grid(row=4, column=0, columnspan=2)
     button_choice.bind("<Button-1>", choice)
 
 
 #Вывод помощи
 def print_help():
-    win = Toplevel(root)  # Создание допокна
-    win.title("Help")  # Его заголовок
     try:
-        file = open("readme.txt", 'r')  # Файл помощи
+        file = codecs.open("readme.txt", 'r', "utf_8_sig")  # Файл помощи
+        win = Toplevel(root)  # Создание допокна
+        win.title("Help")  # Его заголовок
         text = file.read()
         lab = Text(win)
         lab.insert(1.0, text)
-        lab.pack()
-    except Exception as ex:
-        print(ex.args)
+    except FileNotFoundError:
+        win = Toplevel(root)
+        win.minsize(250, 50)
+        win.maxsize(250, 50)
+        win.title("Error!")
+        message = Text(win)
+        message.insert(1.0, "Файл не найден!")
+        message.pack()
 
 
 #Вывод инфы
 def about():
-    win = Toplevel(root)  # Создание допокна
-    win.title("About")  # Заголовок
-    win.minsize(250, 100)  # Фиксированный размер
-    win.maxsize(250, 100)
     try:
-        file = open("about.txt", 'r')  # Файл с инфой
+        file = codecs.open('about.txt', 'r',)  # Файл с инфой
+        win = Toplevel(root)  # Создание допокна
+        win.title("About")  # Заголовок
+        win.minsize(250, 100)  # Фиксированный размер
+        win.maxsize(250, 100)
         text = file.read()
         lab = Text(win)
         lab.insert(1.0, text)
         lab.pack()
-    except Exception as ex:
-        print(ex.args)
+    except FileNotFoundError:
+        win = Toplevel(root)
+        win.minsize(250, 50)
+        win.maxsize(250, 50)
+        win.title("Error!")
+        message = Text(win)
+        message.insert(1.0, "Файл не найден!")
+        message.pack()
 
 
 #Выход...
@@ -486,8 +529,7 @@ def exit():
 
 #Функция для отрисовки лабиринта, полученного из open_maze
 def painting(result, maze, start, end):
-    frame_maze.grid_remove()
-    maze_frame.grid(row=0, column=0)  # Пакуем
+    main_frame[1].grid(row=0, column=0)  # Пакуем
     frame_list = list()  # Лист для лабиринта
 
     if len(maze) < 40:  # Выбираем размер клеток
@@ -502,17 +544,17 @@ def painting(result, maze, start, end):
         for j in range(len(maze)):
             if i % 2 == 0:  # Если строка клеток
                 if j % 2 == 0:  # Если клетка
-                    frame_list[i].append(Frame(maze_frame, width=x, height=x))
+                    frame_list[i].append(Frame(main_frame[1], width=x, height=x))
                     frame_list[i][j].grid(row=i, column=j)
                 else:  # Если стенка
-                    frame_list[i].append(Frame(maze_frame, width=y, height=x))
+                    frame_list[i].append(Frame(main_frame[1], width=y, height=x))
                     frame_list[i][j].grid(row=i, column=j)
             else:  # Если строка стенок
                 if j % 2 == 0:  # Если стенка
-                    frame_list[i].append(Frame(maze_frame, width=x, height=y))
+                    frame_list[i].append(Frame(main_frame[1], width=x, height=y))
                     frame_list[i][j].grid(row=i, column=j)
                 else:  # Если "столбик"
-                    frame_list[i].append(Frame(maze_frame, width=y, height=y))
+                    frame_list[i].append(Frame(main_frame[1], width=y, height=y))
                     frame_list[i][j].grid(row=i, column=j)
 
     size = (len(maze) + 1) // 2  # Размер стороны лабиринта
@@ -535,8 +577,9 @@ def painting(result, maze, start, end):
                 if maze[i + 1][j] == 1:
                     frame_list[i + 1][j].configure(bg='black')  # "Красим" стенку выше клетки
             k += 1
-    for i in result[1]:
-        frame_list[i // size * 2][i % size * 2].configure(bg='yellow')  # Раскрашиваем путь
+    if type(result) is list:  # На случай, если отрисовываем лабиринт, в котором нет пути или конец равен началу
+        for i in result[1]:
+            frame_list[i // size * 2][i % size * 2].configure(bg='yellow')  # Раскрашиваем путь
     frame_list[start // size * 2][start % size * 2].configure(bg='red')  # Обозначаем начало
     frame_list[end // size * 2][end % size * 2].configure(bg='green')  # Обозначаем конец
     root.maxsize(size * x + (size - 1) * y, size * x + (size - 1) * y)  # Закрепляем размер окна
@@ -559,9 +602,8 @@ hm.add_command(label="Help", command=print_help)
 hm.add_command(label="About", command=about)
 
 
-new_maze_frame = Frame(root)  # Фреймы для отрисовки элементов
-open_maze_frame = Frame(root)
-maze_frame = Frame(open_maze_frame,  width=200, height=200)  # Фрейм для отрисовки из файла
-frame_maze = Frame(new_maze_frame,  width=200, height=200)  # Фрейм для рисования
+main_frame = list()
+main_frame.append(Frame(root,  width=200, height=200))
+main_frame.append(Frame(main_frame[0],  width=200, height=200))
 
 root.mainloop()
